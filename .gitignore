@@ -1,0 +1,24 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 本工具的运行产物 ----
+# sample-output 里会有真实日记渲染出来的 HTML、回读 XML 和界面截图，
+# 可能带上你自己的日记内容与本地路径，一律不进仓库。
+sample-output/
+*.sqlite3
+*.log
+
+# ---- 本地临时 / 调试残留 ----
+_*.txt
+_tmp*
+*.tmp
+
+# ---- 编辑器与系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
