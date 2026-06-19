@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT))
 
 from core.config import Config  # noqa: E402
 from core.pipeline import CREATE, Pipeline, resolve_section_name, section_name_for  # noqa: E402
-from core.proc import child_env, decode_output, force_utf8_console, silent_kwargs  # noqa: E402
+from core.proc import force_utf8_console, run_script, silent_kwargs  # noqa: E402
 from writers.base import NotebookRef, OneNoteWriter, ProbeResult, SectionRef  # noqa: E402
 
 # 必须在任何 print 之前：中文 Windows 默认 GBK，输出里带一个替换字符就整脚本崩
@@ -539,19 +539,16 @@ def main() -> int:
     global _SELFTMP_VAULT
 
     print("--- 前置自检（静态 + 跨线程 + 子进程） ---")
-    import subprocess
     here = Path(__file__).parent
     for script, title in (("attrcheck.py", "静态属性自检"),
                           ("test_threads.py", "跨线程自检（状态库 + Pipeline）")):
         print(f"--- {title} ---")
-        # env + silent_kwargs：子脚本按 UTF-8 输出，且不弹控制台窗口
-        proc = subprocess.run([sys.executable, str(here / script)], capture_output=True,
-                              env=child_env(), timeout=600, **silent_kwargs())
-        print(decode_output(proc.stdout).strip())
-        if proc.returncode != 0:
-            print(decode_output(proc.stderr).strip())
+        rc, out, err = run_script(here / script)
+        print(out.strip())
+        if rc != 0:
+            print(err.strip())
             print(f"未通过：{script}")
-            return proc.returncode
+            return rc
 
     tmp = Path(tempfile.gettempdir()) / "onenote-importer-selftest"
     vault = build_sample_vault(tmp / "vault")

@@ -27,7 +27,7 @@ sys.path.insert(0, str(HERE))
 
 from core.config import DEFAULT_CLIENT_ID_HINT, Config  # noqa: E402
 from core.pipeline import Pipeline, StopSignal  # noqa: E402
-from core.proc import child_env, decode_output, silent_kwargs  # noqa: E402
+from core.proc import run_script, silent_kwargs  # noqa: E402
 from ui.theme import (  # noqa: E402
     LOG_COLORS, Badge, Card, Check, FlatButton, NavItem, ScrollArea, Segmented, Ui, hline,
     round_rect, setup_dpi_awareness,
@@ -1210,17 +1210,14 @@ class SyncApp(tk.Tk):
 
         def job():
             self._stage_async("跑自检（渲染 / 分区 / 跨线程）")
-            # 子进程按 UTF-8 输出（child_env 里设了 PYTHONIOENCODING），
-            # 再兜一层 GBK 解码，免得中文 Windows 上打出「ǰ���Լ�」这种乱码。
-            proc = subprocess.run([sys.executable, str(script)], capture_output=True,
-                                  env=child_env(), timeout=600, **silent_kwargs())
-            for line in decode_output(proc.stdout).splitlines():
+            rc, out, err = run_script(script)
+            for line in out.splitlines():
                 self.log(line, "INFO")
-            err = decode_output(proc.stderr).strip()
-            if err:
-                for line in err.splitlines()[:20]:
+            tail = err.strip()
+            if tail:
+                for line in tail.splitlines()[:20]:
                     self.log(line, "ERROR")
-            self.log(f"自检退出码 {proc.returncode}", "OK" if proc.returncode == 0 else "ERROR")
+            self.log(f"自检退出码 {rc}", "OK" if rc == 0 else "ERROR")
 
         self._bg(job)
 
@@ -1250,9 +1247,17 @@ def _enable_dpi_awareness():
 def main():
     _enable_dpi_awareness()
     if "--selftest" in sys.argv:
-        script = HERE / "tests" / "selftest.py"
-        raise SystemExit(subprocess.call([sys.executable, str(script)],
-                                         env=child_env(), **silent_kwargs()))
+        rc, out, err = run_script(HERE / "tests" / "selftest.py")
+        text = (out + err).rstrip() + "\n"
+        if sys.stdout is not None:
+            sys.stdout.write(text)
+        if getattr(sys, "frozen", False):
+            # 打包版没有控制台，输出得落到文件再弹个框，否则用户什么都看不到
+            from core.config import appdata_dir
+            log = appdata_dir() / "selftest.log"
+            log.write_text(text, encoding="utf-8")
+            messagebox.showinfo("导入自检", f"退出码 {rc}\n\n完整输出已写到：\n{log}")
+        raise SystemExit(rc)
     app = SyncApp()
     app.mainloop()
 
