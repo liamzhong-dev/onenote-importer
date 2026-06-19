@@ -57,6 +57,45 @@ def child_env(**extra: str) -> dict:
     return env
 
 
+def run_script(script, timeout: int = 600) -> tuple[int, str, str]:
+    """跑一个自检脚本，返回 (退出码, stdout, stderr)。
+
+    源码运行时起子进程，脚本崩了也带不走界面。打包成 exe 之后这条路就不通了：
+    窗口版 exe 没有控制台，子进程写出来的东西会被整个丢掉（实测输出 0 字节），
+    所以打包版直接在本进程里跑，输出用 StringIO 接回来。
+    """
+    if getattr(sys, "frozen", False):
+        return _run_inprocess(script)
+    proc = subprocess.run([sys.executable, str(script)], capture_output=True,
+                          env=child_env(), timeout=timeout, **silent_kwargs())
+    return proc.returncode, decode_output(proc.stdout), decode_output(proc.stderr)
+
+
+def _run_inprocess(script) -> tuple[int, str, str]:
+    """在本进程里按 __main__ 跑一个脚本，把它打出来的东西接回来。"""
+    import contextlib
+    import io
+    import runpy
+    import traceback as tb
+
+    out, err = io.StringIO(), io.StringIO()
+    saved_argv = sys.argv
+    sys.argv = [str(script)]
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                runpy.run_path(str(script), run_name="__main__")
+                return 0, out.getvalue(), err.getvalue()
+            except SystemExit as exc:
+                code = exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1)
+                return code, out.getvalue(), err.getvalue()
+            except BaseException:  # noqa: BLE001 — 自检脚本崩了不该把界面一起带走
+                tb.print_exc()
+                return 1, out.getvalue(), err.getvalue()
+    finally:
+        sys.argv = saved_argv
+
+
 def force_utf8_console() -> None:
     """把本进程的 stdout / stderr 切到 UTF-8。
 
