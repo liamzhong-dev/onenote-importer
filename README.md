@@ -10,6 +10,10 @@
 
 ## 安装
 
+不想装 Python 的话，直接下打包好的：[Releases](https://github.com/liamzhong-dev/onenote-importer/releases) 里的 onenote-importer.exe，双击就能用。第一次打开 Windows 可能拦一下，点「更多信息 → 仍要运行」，这个 exe 没有买代码签名。
+
+要从源码跑，先准备两件事：
+
 1. 装 Python，版本在 3.10 到 3.13 之间，用 python.org 的官方安装包。安装界面里有两项要勾上：Add python.exe to PATH、还有 Tcl/Tk and IDLE。后面这个是 tkinter，不勾的话界面起不来。
 2. 本机要有桌面版 OneNote。Microsoft Store 里那个应用版本没有 COM 接口，用不了，得是 Office 带的桌面版。
 
@@ -62,7 +66,7 @@ python cli.py sync  --apply --vault D:\Notes   真正写入
 
 ## English
 
-A small Windows tool that batch-imports local Markdown diaries into OneNote. Any folder of `.md` files works, and an Obsidian vault can be pointed at directly. No pip dependencies — you only need Python 3.10–3.13 and desktop OneNote.
+A small Windows tool that batch-imports local Markdown diaries into OneNote. Any folder of `.md` files works, and an Obsidian vault can be pointed at directly. No pip dependencies — you only need Python 3.10–3.13 and desktop OneNote. If you would rather not install Python, grab `onenote-importer.exe` from [Releases](https://github.com/liamzhong-dev/onenote-importer/releases).
 
 **Install.** Get Python from python.org and tick *Add python.exe to PATH* plus *Tcl/Tk and IDLE* (that second one is tkinter, without it the window won't start). You also need the desktop version of OneNote — the Microsoft Store app has no COM interface. Unzip anywhere, there is nothing to install.
 
