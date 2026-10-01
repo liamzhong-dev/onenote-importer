@@ -415,6 +415,9 @@ bridge/onenote_com.ps1  PowerShell COM 桥（记得保留 UTF-8 BOM）
 bridge/photo_tool.ps1   PowerShell 图片处理桥（同样保留 BOM）
 tools/
   audit_publish.py      发版前体检：AI 生成痕迹 / 隐私信息 / Git 提交历史，三样全干净才放行
+  publish_release.py    建/更新 GitHub Release 并上传附件，只用标准库。
+                        为什么单独要有它：git 的 SSH 密钥只能推 commit 和 tag，
+                        Release 与附件走的是 REST API，必须借一个 PAT（Contents: Read and write）
   screenshot.py         抓取窗口截图（自检用）
   make_icon.py          生成应用图标：doc/icon.ico（给 exe）与 doc/icon.png（给仓库）
   shot_pages.py         逐页抓图（视觉走查用）
