@@ -1,0 +1,39 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.venv-pack/
+
+# ---- 打包产物（pack_exe.py 生成）----
+# build/ 是 PyInstaller 的 workpath + specpath，dist/ 是最终产物目录。
+# 这两个都是可再生的，且 spec/ 里带本机绝对路径，绝不能进仓库。
+build/
+dist/
+*.spec
+
+# ---- 本工具的运行产物 ----
+# sample-output 里会有真实日记渲染出来的 HTML、回读 XML 和界面截图，
+# 可能带上你自己的日记内容与本地路径，一律不进仓库。
+sample-output/
+*.sqlite3
+*.log
+
+# ---- 本地临时 / 调试残留 ----
+_*.txt
+_tmp*
+*.tmp
+
+# ---- 编辑器与系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# ---- photos 支线（照片归档，暂未纳入发布）----
+# 这条支线里还有硬编码的本地笔记本名没清理干净，先不进仓库。
+photos/
+photo_app.py
+run-photos.bat
+bridge/photo_tool.ps1

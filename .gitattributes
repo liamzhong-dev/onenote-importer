@@ -1,0 +1,28 @@
+# 换行符规则
+#
+# 背景：Windows 上 git 默认 core.autocrlf=true，会在 checkout 时把仓库里的 LF
+# 悄悄换回 CRLF，导致「明明没改代码，diff 却一片红」。这里显式钉死，避免噪音。
+#
+# 注意 .bat 必须保持 CRLF —— cmd.exe 解析 LF 换行的批处理不可靠，
+# 尤其是带 goto / 标签 / if 块的脚本，会报「不是内部或外部命令」。
+
+* text=auto
+
+# Windows 批处理：强制 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 其余文本按 LF 统一存进仓库
+*.py   text eol=lf
+*.ps1  text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+
+# 二进制，不做任何换行转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.exe  binary
+*.zip  binary
