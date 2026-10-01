@@ -133,6 +133,12 @@ def scan_git_history() -> tuple[int, list[str]]:
 
     这里是文件扫不到的盲区：**作者邮箱**和**提交说明**一旦推上去就是永久公开的，
     而且是别人最常拿来翻的地方。发版前必须单独过一遍。
+
+    扫描范围刻意用 `--branches --tags --remotes`，不用 `--all`：
+    后者会把 `refs/original/`（`git filter-branch` 改写历史时自动留的本地备份）
+    一起算进来，于是「远端已经干净」的历史照样被判成有命中 —— 假报警。
+    这里要回答的问题是「**将要推上去的**东西干不干净」，所以只扫这三类 ref；
+    本地备份单独列出来提醒，不计入结论。
     """
     import subprocess
 
@@ -140,9 +146,14 @@ def scan_git_history() -> tuple[int, list[str]]:
     bad = 0
     try:
         raw = subprocess.run(
-            ["git", "log", "--all", "--format=%h\x1f%an\x1f%ae\x1f%s\x1f%b\x1e"],
+            ["git", "log", "--branches", "--tags", "--remotes",
+             "--format=%h\x1f%an\x1f%ae\x1f%s\x1f%b\x1e"],
             cwd=ROOT, capture_output=True, text=True, timeout=60,
         ).stdout
+        leftover = subprocess.run(
+            ["git", "for-each-ref", "--format=%(refname)", "refs/original"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        ).stdout.strip()
     except Exception as exc:                                    # noqa: BLE001
         return 0, [f"    （读不到 git 历史：{type(exc).__name__}: {exc}）"]
 
@@ -169,6 +180,12 @@ def scan_git_history() -> tuple[int, list[str]]:
                     bad += 1
 
     lines.insert(0, f"    作者署名：{'; '.join(f'{k} ×{v}' for k, v in authors.items())}")
+    lines.insert(1, "    扫描范围：本地分支 + tag + 远端追踪分支（能推上去的那些）")
+    if leftover:
+        lines.append("    本地另有一批改写历史的备份 ref —— 它们推不上去，不计入上面的结论，")
+        lines.append("    但如果你是从这里对外发内容的，记得先清掉：")
+        for ref in leftover.splitlines():
+            lines.append(f"      {ref}")
     return bad, lines
 
 
