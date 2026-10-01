@@ -416,6 +416,7 @@ bridge/photo_tool.ps1   PowerShell 图片处理桥（同样保留 BOM）
 tools/
   audit_publish.py      发版前体检：AI 生成痕迹 / 隐私信息 / Git 提交历史，三样全干净才放行
   screenshot.py         抓取窗口截图（自检用）
+  make_icon.py          生成应用图标：doc/icon.ico（给 exe）与 doc/icon.png（给仓库）
   shot_pages.py         逐页抓图（视觉走查用）
   smoke_ui.py           界面冒烟测试（自动开窗跑几帧再关，顺带出 8 张截图，含进度条与缩放档）
   probe_pages.py        切页可靠性探针：确认四个页面切过去**真的显示了这一页**，
