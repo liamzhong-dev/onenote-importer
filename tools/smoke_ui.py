@@ -39,6 +39,9 @@ _SMOKE_CFG = Path(tempfile.gettempdir()) / "onenote_photo_smoke"
 shutil.rmtree(_SMOKE_CFG, ignore_errors=True)
 _SMOKE_CFG.mkdir(parents=True, exist_ok=True)
 os.environ["ONENOTE_PHOTO_CONFIG_DIR"] = str(_SMOKE_CFG)
+# 日记侧的配置目录也跟着隔离。不隔离的话，冒烟会读到**使用者自己的** config.json，
+# 于是本机路径和真实笔记本名就会印进截图 —— 截图是要进 README 的，绝不能带这些。
+os.environ["APPDATA"] = str(_SMOKE_CFG)
 
 import atexit  # noqa: E402
 
@@ -124,6 +127,20 @@ def main() -> int:
             return path
 
         # 步骤 1：动一遍日记页的新控件
+        def _neutral_fields(self):
+            """把界面上会显示「使用者自己的东西」的字段换成中性演示值。
+
+            截图是要进 README 的，而真实值形如 `C:/Users/<用户名>/...`、
+            或某个私有笔记本名 —— 一旦印进截图就等于公开。
+
+            必须在**每次截图前**都做一遍：缩放重建那一步会回读 config.json，
+            把测试造的临时目录又灌回控件里（踩过 —— 07 号截图上漏出过
+            `C:/Users/<用户名>/AppData/Local/Temp/smoke-vault-xxxx`）。
+            """
+            self.var_vault.set("D:/我的日记库")
+            self.var_notebook.set("日记")
+            self.update()
+
         def _step_widgets(self):
             try:
                 for mode in ("fixed", "template"):
@@ -181,6 +198,9 @@ def main() -> int:
             try:
                 self._show_page("sync")
                 self.update()
+                self._neutral_fields()
+                self.var_section.set("{YYYY}{season}")
+                self.update()
                 items = [
                     PlanItem("日记/2026-06-22.md", Path("x"), "update", "6月22日", "2026夏",
                              section_exists=True, matched_page_id="p-1"),
@@ -201,7 +221,8 @@ def main() -> int:
                 self.problems.append(f"填充计划树时异常：{type(e).__name__}: {e}")
 
             # 顺序跟侧边栏一致，文件名跟着排下来
-            for key, name in (("auth", "03-账户与通道页"), ("adv", "04-高级设置页")):
+            for key, name in (("auth", "03-账户与通道页"), ("adv", "04-高级设置页"),
+                              ("about", "05-关于页")):
                 try:
                     self._show_page(key)
                     self._shot(name)
@@ -411,7 +432,8 @@ def main() -> int:
                 if not re.search(r"\d+s", label):
                     self.problems.append(f"进度文字里没有已用时长（实际 {label!r}）")
                 self.update()
-                self._shot("05-进度条", 0.4)
+                self._neutral_fields()
+                self._shot("06-进度条", 0.4)
                 self._set_busy(False)
                 self.update()
                 if self.pbar.winfo_manager() or self.lbl_progress.winfo_manager():
@@ -420,7 +442,7 @@ def main() -> int:
                         f"（manager={self.pbar.winfo_manager()!r}, "
                         f"{self.lbl_progress.winfo_manager()!r}）")
                 else:
-                    print(f"      进度区：任务中显示、任务后收起（05-进度条.png，{label!r}）")
+                    print(f"      进度区：任务中显示、任务后收起（06-进度条.png，{label!r}）")
             except Exception as e:  # noqa: BLE001
                 self.problems.append(f"截图进度区时异常：{type(e).__name__}: {e}")
             self.after(250, self._step_scale)
@@ -452,7 +474,8 @@ def main() -> int:
                     self.problems.append("缩放重建后照片页没重建出来")
                 self._show_page("sync")
                 self.update()
-                self._shot("06-缩放115")
+                self._neutral_fields()
+                self._shot("07-缩放115")
                 print(f"      缩放重建：界面 {ui_before:.2f}→{ui_after:.2f}，"
                       f"字体 {font_before:.2f}→{font_after:.2f}，日志保留")
 

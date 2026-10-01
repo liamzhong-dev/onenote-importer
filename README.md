@@ -8,6 +8,7 @@
 | **导入照片** | 把手机传过来的照片**按拍摄日期**分好组，追加到那天的日记页末尾。 |
 | **账户与通道** | 看每条写入通道通不通、配置 Graph 登录。 |
 | **高级设置** | 标题模板、图片上限、界面比例等偏底层的选项。 |
+| **关于** | 版本、许可与联系方式。 |
 
 只要日记是 md 文件就适用——**Obsidian 库可以直接选作来源**，其它工具导出的 Markdown 同样能导入。
 除 Markdown 外还支持三种「简单格式」，在「导入日记」页的**可导入格式**里勾选：
@@ -27,15 +28,37 @@
 
 ---
 
+## 界面
+
+**导入日记** —— 选好目录先「扫描预览」（只读，不写 OneNote），确认没选错再真正写入：
+
+![导入日记页](doc/shots/01-import.png)
+
+**导入照片** —— 手机传过来的照片按拍摄日期分组，追加到那天的日记页末尾：
+
+![导入照片页](doc/shots/02-photos.png)
+
+**账户与通道** —— 看桌面 COM / Microsoft Graph 两条链路通不通，配 Graph 登录：
+
+![账户与通道页](doc/shots/03-auth.png)
+
+**高级设置** —— 标题模板、分区命名、写入行为、界面缩放：
+
+![高级设置页](doc/shots/04-advanced.png)
+
+**关于** —— 版本、许可与联系方式：
+
+![关于页](doc/shots/05-about.png)
+
+---
+
 ## 1. 快速开始
 
 ### 1.1 用 exe 启动（推荐）
 
-```bat
-双击  OneNote日记工具.exe
-```
+不想装 Python 的话，直接去 [Releases](https://github.com/liamzhong-dev/onenote-importer/releases) 下载打包版，解压后双击 `OneNote日记工具.exe` —— 没有控制台黑窗，双击就是界面。第一次打开 Windows 可能会拦一下，点「更多信息 → 仍要运行」：这个 exe 没有买代码签名，属于正常提示。
 
-没有控制台黑窗，双击就是界面。这个 exe 用 `pack_exe.py` 打出来：
+自己打的话用 `pack_exe.py`：
 
 ```bat
 python pack_exe.py             :: 打包 + 自动验证
@@ -387,12 +410,14 @@ photos/
   selftest.py           照片链路离线自检
 ui/
   theme.py              配色、字体、DPI 缩放与自绘控件
+doc/shots/              README 里的界面截图（跑 tools/smoke_ui.py 生成后拷进来）
 bridge/onenote_com.ps1  PowerShell COM 桥（记得保留 UTF-8 BOM）
 bridge/photo_tool.ps1   PowerShell 图片处理桥（同样保留 BOM）
 tools/
+  audit_publish.py      发版前体检：AI 生成痕迹 / 隐私信息 / Git 提交历史，三样全干净才放行
   screenshot.py         抓取窗口截图（自检用）
   shot_pages.py         逐页抓图（视觉走查用）
-  smoke_ui.py           界面冒烟测试（自动开窗跑几帧再关，顺带出 7 张截图，含进度条与缩放档）
+  smoke_ui.py           界面冒烟测试（自动开窗跑几帧再关，顺带出 8 张截图，含进度条与缩放档）
   probe_pages.py        切页可靠性探针：确认四个页面切过去**真的显示了这一页**，
                         且同一页连拍两次像素一致（把「应用没切页」和「截图抓到上一帧」分开）
   verify_exe.py         对**打包后的 exe** 做界面验收：逐页真实点击 + 截图，断言无控制台黑窗
@@ -402,6 +427,8 @@ tools/
   probe_page_order.py   只读体检：记账历史 + 分区页数 + 页面排列顺序
   audit_blank_pages.py  全只读：把**所有笔记本所有分区**的未命名空页数一遍（不删）
   scratch_write_test.py 真实写入试验：在临时分区写一页再删掉，验证 COM 链路
+  diag_state_vs_live.py 只读诊断：状态库记的页面 vs 分区现场，一眼看出「账实不符」
+  diag_page_content.py  只读诊断：把计划里那几页的实际内容读回来，核对到底写进去没有
   cleanup_blank_pages.py 把导入失败留下的空页列出来（默认只列，--yes 才删；
                         自动跳过「删除的页面」回收站，`--all-sections` 扫整个笔记本）
 tests/
@@ -410,6 +437,7 @@ tests/
   attrcheck.py          静态扫「self 属性用了却没赋值」+ 弹窗级别映射
   test_threads.py       跨线程状态库 / Pipeline 回归测试（原来的崩溃路径）
   test_sync_flow.py     幂等判定与降级流程测试
+  docx_fixture.py       现场造 .docx 样本（zipfile + xml 手写，不依赖第三方库）
 ```
 
 > `python tests/selftest.py` 里的「已有分区识别」一节用**假通道**模拟
@@ -423,7 +451,7 @@ tests/
 >
 > 界面侧还有 `python tools/smoke_ui.py`：自动开窗、动一遍控件、跑一遍
 > 「计划线程 → 同步线程」的真实链路（预览模式，不碰 OneNote），
-> 再在**任务进行中**抓一张进度区截图（`sample-output/05-进度条.png`），
+> 再在**任务进行中**抓一张进度区截图（`sample-output/06-进度条.png`），
 > 最后切一遍缩放档验证重建、抓图关窗。
 > 它还会断言进度区「任务中显示、任务后收起」—— 这一节就是 §4.3 的回归测试。
 >
@@ -509,3 +537,13 @@ tests/
 [MIT License](LICENSE) © 2026 liamzhong-dev
 
 随便用、随便改、随便商用，保留版权声明即可。
+
+---
+
+## 11. 联系方式
+
+- **项目主页**：<https://github.com/liamzhong-dev/onenote-importer>
+- **问题反馈 / 功能建议**：<https://github.com/liamzhong-dev/onenote-importer/issues>
+
+用着有问题、想要个新功能、或者发现了 bug，都欢迎开个 Issue 说一声。
+程序里的「**关于**」页也有这两个入口，不用回来翻 README。

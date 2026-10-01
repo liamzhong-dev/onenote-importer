@@ -47,6 +47,9 @@ from writers.factory import probe_all  # noqa: E402
 APP_NAME = "OneNote 日记工具"
 APP_TITLE = "OneNote 日记工具"
 APP_VERSION = "2.0"
+# 「关于」页与打包脚本共用这两个常量，改这里一处就够
+APP_REPO = "https://github.com/liamzhong-dev/onenote-importer"
+APP_LICENSE = "MIT"
 
 ACTION_LABEL = {"create": "新建", "update": "更新", "skip": "跳过", "fail": "失败",
                 # 同步过程中逐行回填的状态（见 _update_row）
@@ -144,6 +147,7 @@ class SyncApp(tk.Tk):
         self._build_photo_page()
         self._build_auth_page()
         self._build_adv_page()
+        self._build_about_page()
         self._show_page("sync")
         self._load_cfg_to_ui()
 
@@ -278,6 +282,7 @@ class SyncApp(tk.Tk):
             ("photos", "▣", "导入照片"),
             ("auth", "⚿", "账户与通道"),
             ("adv", "⚙", "高级设置"),
+            ("about", "ⓘ", "关于"),
         ):
             item = NavItem(nav, ui, icon, label, command=lambda k=key: self._show_page(k))
             item.pack(fill="x", padx=ui.px(10), pady=ui.px(2))
@@ -329,7 +334,7 @@ class SyncApp(tk.Tk):
         self.host = tk.Frame(self.main, bg=c["app_bg"])
         self.host.pack(side="top", fill="both", expand=True)
         self.pages: dict[str, tk.Frame] = {}
-        for key in ("sync", "photos", "auth", "adv"):
+        for key in ("sync", "photos", "auth", "adv", "about"):
             f = tk.Frame(self.host, bg=c["app_bg"])
             f.place(relx=0, rely=0, relwidth=1, relheight=1)
             self.pages[key] = f
@@ -619,6 +624,70 @@ class SyncApp(tk.Tk):
         self.txt_probe.configure(state="disabled")
         FlatButton(card2.body, ui, "重新探测通道", command=self.do_probe,
                    variant="secondary").pack(anchor="w")
+
+    # ================================================================ 关于页
+    def _build_about_page(self):
+        ui, c = self.ui, self.ui.c
+        page = self.pages["about"]
+        self._page_header(page, "关于", f"{APP_NAME} v{APP_VERSION} · {APP_LICENSE} 许可")
+        area = ScrollArea(page, ui, bg=c["app_bg"])
+        area.pack(fill="both", expand=True)
+        pad = dict(padx=ui.px(24), pady=(0, ui.px(12)))
+
+        card = Card(area.inner, ui, "这个工具做什么")
+        card.pack(fill="x", **pad)
+        tk.Label(card.body,
+                 text="把本地日记（Markdown / 纯文本 / Word / 网页）和手机传来的照片，按日期送进 "
+                      "OneNote 对应的分区与页面。\n"
+                      "重复运行不会产生重复页；内容变了就地更新；页面被人在 OneNote 里删掉会自动重建。"
+                      "全程只读你的来源文件，不改动也不复制来源目录。",
+                 bg=c["surface"], fg=c["text_soft"], font=ui.font("small"),
+                 justify="left", wraplength=ui.px(620)).pack(anchor="w")
+
+        card2 = Card(area.inner, ui, "联系我",
+                     "用着有问题、想提功能、发现 bug，都欢迎来说一声")
+        card2.pack(fill="x", **pad)
+        self._about_row(card2.body, "项目主页", APP_REPO)
+        self._about_row(card2.body, "问题反馈", APP_REPO + "/issues")
+        tk.Label(card2.body,
+                 text="两条路都能找到我。只是路过想点个 star 的话，直接点项目主页就行。",
+                 bg=c["surface"], fg=c["text_muted"], font=ui.font("tiny"),
+                 justify="left", wraplength=ui.px(620)).pack(anchor="w", pady=(ui.px(10), 0))
+
+        card3 = Card(area.inner, ui, "版本与目录")
+        card3.pack(fill="x", **pad)
+        # ⚠️ 这里**故意不显示配置目录的绝对路径** —— 那行会带上当前 Windows 用户名，
+        # 一旦截图进了 README 就等于把用户名公开了。要打开目录点下面的按钮就行。
+        for k, v in (("程序版本", f"v{APP_VERSION}"),
+                     ("界面缩放", f"界面 ×{self.ui_scale} · 字体 ×{self.font_scale}"),
+                     ("配置位置", r"%APPDATA%\OneNoteDiaryImporter")):
+            row = tk.Frame(card3.body, bg=c["surface"])
+            row.pack(fill="x", pady=ui.px(3))
+            tk.Label(row, text=k, bg=c["surface"], fg=c["text_muted"],
+                     font=ui.font("small"), width=10, anchor="w").pack(side="left")
+            tk.Label(row, text=v, bg=c["surface"], fg=c["text_soft"],
+                     font=ui.font("small"), anchor="w").pack(side="left")
+
+        act = tk.Frame(card3.body, bg=c["surface"])
+        act.pack(fill="x", pady=(ui.px(14), 0))
+        FlatButton(act, ui, "打开项目主页", command=lambda: webbrowser.open(APP_REPO),
+                   variant="secondary").pack(side="left")
+        FlatButton(act, ui, "打开配置目录", command=self.open_appdata,
+                   variant="ghost").pack(side="left", padx=ui.px(10))
+        tk.Label(card3.body,
+                 text=f"本程序以 {APP_LICENSE} 许可发布：随便用、随便改、随便商用，保留版权声明即可。",
+                 bg=c["surface"], fg=c["text_muted"], font=ui.font("tiny"),
+                 justify="left", wraplength=ui.px(620)).pack(anchor="w", pady=(ui.px(12), 0))
+
+    def _about_row(self, parent, label: str, url: str):
+        """关于页里的一行：左边标签 + 右边可点的链接按钮。"""
+        ui, c = self.ui, self.ui.c
+        row = tk.Frame(parent, bg=c["surface"])
+        row.pack(fill="x", pady=ui.px(3))
+        tk.Label(row, text=label, bg=c["surface"], fg=c["text_muted"],
+                 font=ui.font("small"), width=10, anchor="w").pack(side="left")
+        FlatButton(row, ui, url, command=lambda: webbrowser.open(url),
+                   variant="ghost").pack(side="left")
 
     # ================================================================ 高级页
     def _build_adv_page(self):
@@ -1451,6 +1520,7 @@ class SyncApp(tk.Tk):
         self._build_photo_page()
         self._build_auth_page()
         self._build_adv_page()
+        self._build_about_page()
         self._load_cfg_to_ui()
         self._show_page(page_key)
         self._restore_logs(logs)
