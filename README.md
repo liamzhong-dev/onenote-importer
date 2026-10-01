@@ -418,6 +418,14 @@ tools/
   publish_release.py    建/更新 GitHub Release 并上传附件，只用标准库。
                         为什么单独要有它：git 的 SSH 密钥只能推 commit 和 tag，
                         Release 与附件走的是 REST API，必须借一个 PAT（Contents: Read and write）
+  check_token.py        发版前先查这个 PAT 到底有没有写权限，别等传完 10 MB 才发现不行。
+                        四步探测（认证 / 读仓库 / 建 blob / 列 Release），失败时从响应头
+                        读出该端点要求的权限名——GitHub 那句 "Resource not accessible"
+                        太含糊，不给它单独问一次是查不出来的
+  release_with_device_login.py
+                        不想手工建 PAT 的替代路径：OAuth 设备码授权。浏览器输一个 8 位码，
+                        脚本自己换到临时凭据再发 Release。凭据只在内存里，不落盘、不打印。
+                        注意它要访问 github.com（不是 api.github.com），受限网络下跑不通
   screenshot.py         抓取窗口截图（自检用）
   make_icon.py          生成应用图标：doc/icon.ico（给 exe）与 doc/icon.png（给仓库）
   shot_pages.py         逐页抓图（视觉走查用）

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -82,11 +83,39 @@ NOTICES: list[tuple[str, str]] = [
 EMAIL_ALLOW = re.compile(r"@users\.noreply\.github\.com$", re.I)
 
 
+def _git_visible_files() -> list[Path] | None:
+    """问 git：哪些文件会真的进仓库？返回已跟踪的 + 未忽略的未跟踪文件。
+
+    为什么不用 ROOT.rglob() 了：那样得再手写一份排除清单，而那份清单迟早
+    会和 .gitignore 分叉 —— .gitignore 里忽略掉的本机脚本（带本机绝对路径的
+    那种），rglob 照样扫得到，于是体检报一堆「根本不会发布的东西」的命中，
+    把真命中淹掉。问 git 本人，两边就永远一致。git 不可用时退回 rglob。
+    """
+    try:
+        out = subprocess.run(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT, capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    names = out.stdout.decode("utf-8", "replace").split("\0")
+    return [ROOT / n for n in names if n]
+
+
 def iter_files():
-    for p in sorted(ROOT.rglob("*")):
+    cands = _git_visible_files()
+    if cands is None:
+        print("  (提示：读不到 git 的文件清单，退回全目录扫描，"
+              "此时 .gitignore 里的排除项不生效)", file=sys.stderr)
+        cands = list(ROOT.rglob("*"))
+    for p in sorted(set(cands)):
         if not p.is_file():
             continue
-        rel = p.relative_to(ROOT)
+        try:
+            rel = p.relative_to(ROOT)
+        except ValueError:
+            continue
         parts = rel.parts
         if any(d in SKIP_DIRS or d.startswith(SKIP_DIR_PREFIX) for d in parts[:-1]):
             continue
